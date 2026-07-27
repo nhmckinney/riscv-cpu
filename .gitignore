@@ -1,0 +1,34 @@
+# Simulation artifacts
+*.vcd
+*.fst
+*.vvp
+*.o
+
+# Vivado
+.Xil/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.runs/
+*.jou
+*.log
+
+# Verilator
+obj_dir/
+*.mk
+
+# Build output
+/build/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Local planning (not for GitHub)
+futurePlans.md
