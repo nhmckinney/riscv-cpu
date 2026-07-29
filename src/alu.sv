@@ -19,17 +19,22 @@ module alu(
         result = a + b;
     end
       case (ALU_SLL): begin
+        result = a << b;
     end
       case (ALU_SLT):  begin
+        result = ($signed(a) < $signed(b)) ? 32'b1 : 32'b0;
     end
       case (ALU_SLTU): begin
+        result = (a < b) ? 32'b1 : 32'b0;
     end
       case (ALU_XOR):  begin
         result = a ^ b;
     end
       case (ALU_SRL): begin
+        result = a >> b;
     end
       case (ALU_SRA) : begin
+        result = a >>> b;
     end
       case (ALU_OR): begin
         result = a | b;

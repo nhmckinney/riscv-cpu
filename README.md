@@ -4,21 +4,22 @@
 
 ## Status
 
-- Project bootstrap (architecture planning)
-- Integrated cache controller from `cache-project`
-- RTL implementation in progress
+- Project bootstrap (architecture planning done)
+- Module headers created: `instruction_decoder`, `alu`, `register_file`, `pipeline_controller`
+- RTL implementation in progress (Phase 1: datapath)
 
 ## What's in Here
 
 **RTL modules** (`src/`):
-- `riscv_core.sv` — 5-stage pipeline (fetch, decode, execute, memory, writeback)
-- `alu.sv` — arithmetic/logic unit
-- `register_file.sv` — 32 registers (x0-x31)
-- `control_unit.sv` — instruction decoding and pipeline control
 - `riscv_pkg.sv` — params and instruction encodings (RV32I base ISA)
+- `instruction_decoder.sv` — combinational instruction decoder (opcode, funct3/7, immediates, control signals)
+- `alu.sv` — arithmetic/logic unit (ADD, SUB, AND, OR, XOR, SLT, shifts)
+- `register_file.sv` — 32 x 32-bit register file (async read, sync write)
+- `pipeline_controller.sv` — control FSM (fetch → decode → execute → memory → writeback, stalls, flushes)
+- `riscv_core.sv` — top-level 5-stage pipeline (coming soon)
 
 **Integration**:
-- `cache_controller.sv` (from `../cache-project/src/`)
+- `cache_controller.sv` (from `https://github.com/nhmckinney/cache-project`)
 - Memory interface connecting CPU to L1 cache
 
 **Testing**:
