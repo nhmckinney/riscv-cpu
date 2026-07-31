@@ -16,9 +16,9 @@ module alu(
         result = a + b;
     end
       case (ALU_SUB):  begin
-        result = a + b;
+        result = a - b;
     end
-      case (ALU_SLL): begin
+      case (ALU_SLL): begin //shift left logical
         result = a << b;
     end
       case (ALU_SLT):  begin

@@ -2,37 +2,58 @@ import riscv_pkg::*;
 
 module decode_stage(
   input logic clk, rst_n,
-  input instr_t instr
+  input instr_t instr,
 
-  output ctrl_signals_t ctrl_sig;
-  output 
-  output imm_t imm;
-
-);
-
-  instruction_decoder decode_mod(.instr(instr),.opcode(opcode),
-  output logic [2:0] funct3,
+  output opcode_t opcode;
+  output logic [2:0] funct3, 
   output logic [6:0] funct7,
-  output reg_addr_t rs1, rs2, rd,.imm(imm_next),.ctrl_sig(ctrl_sig_next),.alu_op(alu_op_next)
+  output reg_addr_t rs1, rs2, rd;
+  output imm_t imm;
+  output ctrl_signals_t ctrl_sig;
+  output alu_op_t alu_op;
+
 );
 
+  instruction_decoder decode_mod(.instr(instr),.opcode(opcode_next),
+                                 .funct3(funct3_next),.funct7(funct7_next),
+                                 .rs1(rs1_next), .rs2(rs2_next), .rd(rd_next),
+                                 .imm(imm_next),.ctrl_sig(ctrl_sig_next),
+                                 .alu_op(alu_op_next));
 
+  opcode_t opcode_next;
+  logic [2:0] funct3_next;
+  logic [6:0] funct7_next;
+  reg_addr_t rs1_next, rs2_next, rd_next;
+  imm_t imm_next;
+  ctrl_signals_t ctrl_sig_next;
+  alu_op_t alu_op_next;
 
-  ctrl_signals_t ctrl_sig, ctrl_sig_next;
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-      //need to implement
+      opcode <= '0;
+      funct3 <= '0;
+      funct7 <= '0;
+      rs1 <= '0;
+      rs2 <= '0;
+      rd <= '0;
+      imm <= '0;
+      ctrl_sig <= '0;
+      alu_op <= '0;
     end
     else begin
-      ctrl_sig <= ctrl_sig_next;
+      opcode <= opcode_next;
+      funct3 <= funct3_next;
+      funct7 <= funct7_next;
+      rs1 <= rs1_next;
+      rs2 <= rs2_next;
+      rd <= rd_next;
       imm <= imm_next;
+      ctrl_sig <= ctrl_sig_next;
+      alu_op <= alu_op_next;
     end
   end
 
-  
-  // Pipeline register holding decoded instruction signals
-  // Instantiates register_file reads
-  // Outputs: control signals, register operands, immediate
+
 
 endmodule : decode_stage
