@@ -26,21 +26,21 @@ module instruction_decoder(
     //prevents inferred latched
 
 
-    switch (opcode) begin
-      case OP_LUI: begin //load upper immediate
+    case (opcode)
+      OP_LUI: begin //load upper immediate
         imm[31:12] = instr[31:12]; //extract upper immediate
         ctrl_sig.reg_write = 1'b1; 
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
       end
-      case OP_AUIPC: begin //add upper immediate to PC
+      OP_AUIPC: begin //add upper immediate to PC
         imm[31:12] = instr[31:12]; //extract upper immediate
         ctrl_sig.reg_write = 1'b1;
         ctrl_sig.alu_src_a = 2'b01; //alu a input is PC
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
       end
-      case OP_JAL: begin
+      OP_JAL: begin
         imm[20]    = instr[31];
         imm[19:12] = instr[19:12];
         imm[11]    = instr[20];
@@ -50,13 +50,13 @@ module instruction_decoder(
         ctrl_sig.is_jump = 1'b1;
         ctrl_sig.reg_write = 1'b1;
       end
-      case OP_JALR: begin
+      OP_JALR: begin
         imm[11:0] = instr[31:20];
         imm[31:12] = {20{instr[31]}};
         ctrl_sig.is_jump = 1'b1;
         ctrl_sig.reg_write = 1'b1;
       end
-      case OP_BRANCH: begin
+      OP_BRANCH: begin
         // B-format immediate: split across [31:25] and [11:7]
         imm[12]    = instr[31];
         imm[10:5]  = instr[30:25];
@@ -68,7 +68,7 @@ module instruction_decoder(
         ctrl_sig.alu_src_b = 2'b01;  // compute: rs1 - rs2
         alu_op = ALU_SUB;            // subtract for comparison
       end
-      case OP_LOAD: begin
+      OP_LOAD: begin
         // I-format immediate
         imm[11:0] = instr[31:20];
         imm[31:12] = {20{instr[31]}};
@@ -78,7 +78,7 @@ module instruction_decoder(
         ctrl_sig.alu_src_b = 2'b01;   // compute addr: rs1 + imm
         alu_op = ALU_ADD;
       end
-      case OP_STORE: begin
+      OP_STORE: begin
         // S-format immediate: split across [31:25] and [11:7]
         imm[11:5] = instr[31:25];
         imm[4:0]  = instr[11:7];
@@ -87,7 +87,7 @@ module instruction_decoder(
         ctrl_sig.alu_src_b = 2'b01;   // compute addr: rs1 + imm
         alu_op = ALU_ADD;
       end
-      case OP_ARITH: begin //immediate arithmetic
+      OP_ARITH: begin //immediate arithmetic
         case (funct3)
           3'b000: alu_op = ALU_ADD;      // ADDI
           3'b001: alu_op = ALU_SLL;      // SLLI
@@ -106,7 +106,7 @@ module instruction_decoder(
         imm[31:12] = {20{instr[31]}};  // sign-extend
       end
 
-      case OP_COMPUTE: begin //register to register 
+      OP_COMPUTE: begin //register to register 
       //uses the alu
         case (funct3)
           3'b000: alu_op = (funct7[5] == 1'b0) ? ALU_ADD : ALU_SUB;
@@ -122,13 +122,13 @@ module instruction_decoder(
         ctrl_sig.reg_write = 1'b1; //wr_en
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
       end
-      case OP_FENCE: begin
+      OP_FENCE: begin
         //not implemented for single-core CPU
       end
-      case OP_SYSTEM: begin
+      OP_SYSTEM: begin
         //not necessary yet
       end
-    end
+    endcase
   end
 
 
