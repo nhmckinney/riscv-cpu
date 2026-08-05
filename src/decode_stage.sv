@@ -4,14 +4,13 @@ module decode_stage(
   input logic clk, rst_n,
   input instr_t instr,
 
-  output opcode_t opcode;
+  output opcode_t opcode,
   output logic [2:0] funct3, 
   output logic [6:0] funct7,
-  output reg_addr_t rs1, rs2, rd;
-  output imm_t imm;
-  output ctrl_signals_t ctrl_sig;
-  output alu_op_t alu_op;
-
+  output reg_addr_t rs1, rs2, rd,
+  output imm_t imm,
+  output ctrl_signals_t ctrl_sig,
+  output alu_op_t alu_op
 );
 
   instruction_decoder decode_mod(.instr(instr),.opcode(opcode_next),
