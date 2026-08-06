@@ -3,7 +3,7 @@
 
 ## Clock (100 MHz)
 set_property -dict { PACKAGE_PIN W5   IOSTANDARD LVCMOS33 } [get_ports clk]
-create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk]
+create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports clk]
 
 ## Divided clock (50 MHz): basys_top toggles clk_div2 off clk to drive the
 ## LOB, since the LOB's worst-case path doesn't meet timing at 100 MHz.
