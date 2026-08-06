@@ -124,7 +124,7 @@ module memory_stage(
       mem_reg_write <= 1'b0;
       mem_ctrl_sig <= '0;
       mem_funct3 <= '0;
-      mem_opcode <= '0;
+      mem_opcode <= OP_INVALID;
     end
     else begin
       mem_result <= mem_result_next;

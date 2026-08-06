@@ -105,7 +105,7 @@ module execute_stage(
       exec_rd <= '0;
       exec_ctrl_sig <= '0;
       exec_funct3 <= '0;
-      exec_opcode <= '0;
+      exec_opcode <= OP_INVALID;
     end
     else begin
       exec_alu_result <= alu_result;

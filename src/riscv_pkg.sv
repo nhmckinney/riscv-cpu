@@ -15,6 +15,7 @@ package riscv_pkg;
 
   // Opcodes (7 bits)
   typedef enum logic [6:0] {
+    OP_INVALID = 7'b0000000,
     OP_LUI    = 7'b0110111,
     OP_AUIPC  = 7'b0010111,
     OP_JAL    = 7'b1101111,
@@ -30,6 +31,7 @@ package riscv_pkg;
 
   // ALU operations (from funct3 and funct7)
   typedef enum logic [3:0] {
+    ALU_NOP   = 4'b1110,
     ALU_ADD   = 4'b0000,
     ALU_SUB   = 4'b1000,
     ALU_SLL   = 4'b0001,
