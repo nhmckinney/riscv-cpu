@@ -13,7 +13,7 @@ module instruction_decoder(
 
   always_comb begin
     // Extract fields
-    opcode = instr[6:0];
+    opcode = opcode_t'(instr[6:0]);
     funct3 = instr[14:12];
     funct7 = instr[31:25];
     rs1 = instr[19:15];
