@@ -5,25 +5,11 @@
 set_property -dict { PACKAGE_PIN W5   IOSTANDARD LVCMOS33 } [get_ports clk]
 create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports clk]
 
-## Divided clock (50 MHz): basys_top toggles clk_div2 off clk to drive the
-## LOB, since the LOB's worst-case path doesn't meet timing at 100 MHz.
-## This tells the timing tool that clk_div2 is a real derived clock (half
-## rate, from a toggle flip-flop) so it analyzes lob_top's paths at 50 MHz
-## instead of 100 MHz.
-create_generated_clock -name clk_div2 -source [get_ports clk] -divide_by 2 [get_pins clk_div2_reg/Q]
-
-## Reset (Button 1 / BTNU - momentary, active high on Basys3; drives rst_n directly,
+## Reset (Button 1 / BTNU - momentary, active high on Basys3; drives reset directly,
 ## so the board reset button must be held to keep the design in reset)
-set_property -dict { PACKAGE_PIN U18  IOSTANDARD LVCMOS33 } [get_ports rst_n]
+set_property -dict { PACKAGE_PIN U18  IOSTANDARD LVCMOS33 } [get_ports reset]
 
-## Register select (Switches SW4-SW0 select which register to display on LEDs)
-set_property -dict { PACKAGE_PIN W15  IOSTANDARD LVCMOS33 } [get_ports {reg_select[0]}]
-set_property -dict { PACKAGE_PIN V15  IOSTANDARD LVCMOS33 } [get_ports {reg_select[1]}]
-set_property -dict { PACKAGE_PIN W14  IOSTANDARD LVCMOS33 } [get_ports {reg_select[2]}]
-set_property -dict { PACKAGE_PIN W13  IOSTANDARD LVCMOS33 } [get_ports {reg_select[3]}]
-set_property -dict { PACKAGE_PIN V2   IOSTANDARD LVCMOS33 } [get_ports {reg_select[4]}]
-
-## Center pushbutton (BTNC) - add-order trigger, debounced in basys_top
+## Center pushbutton (BTNC) - toggles display between register value and PC on LEDs
 set_property -dict { PACKAGE_PIN U17  IOSTANDARD LVCMOS33 } [get_ports btnC]
 
 ## 16 Slide Switches (SW15-SW0)

@@ -1,20 +1,18 @@
 module cpu_top(
   input logic clk,
   input logic reset,
-  input logic [4:0] reg_select,    // switches to select which register to display
-  output logic [15:0] LED,
-
-  // Debug ports
-  input reg_addr_t debug_rd_addr,
-  output word_t debug_rd_data,
-  output word_t debug_pc
+  input logic [4:0] sw,         // switches to select register
+  input logic btnC,              // button to toggle between register/PC display
+  output logic [15:0] LED
 );
 
   logic rst_n;
   assign rst_n = ~reset;
 
-  // Debug signals from CPU
+  // Debug signals from CPU (internal only, not top-level ports)
   logic stall, branch_taken, mem_result_valid;
+  word_t debug_rd_data;
+  word_t debug_pc;
 
   riscv_core cpu(
     .clk(clk),
@@ -22,22 +20,18 @@ module cpu_top(
     .stall_out(stall),
     .branch_taken_out(branch_taken),
     .mem_result_valid_out(mem_result_valid),
-    .debug_rd_addr(reg_select),
+    .debug_rd_addr(sw),
     .debug_rd_data(debug_rd_data),
     .debug_pc(debug_pc)
   );
 
-  // Wire register file output to LEDs (lower 16 bits show register value)
-  // Use switches to select which register to display:
-  //   SW[0]=0 → register x3 (should be 8)
-  //   SW[1]=0 → register x1 (should be 5)
-  //   SW[2]=0 → register x2 (should be 3)
-  // Status bits on upper LEDs
-  assign LED[15:0] = debug_rd_data[15:0];
+  // Multiplexer to toggle between register value and PC on LEDs
+  // btnC = 0 → show selected register value (from debug_rd_data)
+  // btnC = 1 → show program counter (from debug_pc)
+  logic [15:0] led_value;
+  assign led_value = btnC ? debug_pc[15:0] : debug_rd_data[15:0];
 
-  // Overlay status indicators on specific LEDs (will OR with register value)
-  // LED[0] shows stall condition
-  // LED[1] shows branch_taken
-  // LED[2] shows mem_result_valid
+  // Wire to LEDs (lower 16 bits of selected value)
+  assign LED[15:0] = led_value;
 
 endmodule : cpu_top
