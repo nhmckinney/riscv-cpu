@@ -22,7 +22,7 @@ module instruction_decoder(
 
     ctrl_sig = '0; //turn all flags off
     imm = '0; //reset immediate value
-    alu_op = '0; //reset alu operation
+    alu_op = ALU_NOP; //reset alu operation
     //prevents inferred latched
 
 
