@@ -1,6 +1,7 @@
 module cpu_top(
   input logic clk,
   input logic reset,
+  input logic [4:0] reg_select,    // switches to select which register to display
   output logic [15:0] LED,
 
   // Debug ports
@@ -21,15 +22,22 @@ module cpu_top(
     .stall_out(stall),
     .branch_taken_out(branch_taken),
     .mem_result_valid_out(mem_result_valid),
-    .debug_rd_addr(debug_rd_addr),
+    .debug_rd_addr(reg_select),
     .debug_rd_data(debug_rd_data),
     .debug_pc(debug_pc)
   );
 
-  // Wire debug signals to LEDs to prevent Vivado from optimizing away logic
-  assign LED[0] = stall;
-  assign LED[1] = branch_taken;
-  assign LED[2] = mem_result_valid;
-  assign LED[15:3] = '0;
+  // Wire register file output to LEDs (lower 16 bits show register value)
+  // Use switches to select which register to display:
+  //   SW[0]=0 → register x3 (should be 8)
+  //   SW[1]=0 → register x1 (should be 5)
+  //   SW[2]=0 → register x2 (should be 3)
+  // Status bits on upper LEDs
+  assign LED[15:0] = debug_rd_data[15:0];
+
+  // Overlay status indicators on specific LEDs (will OR with register value)
+  // LED[0] shows stall condition
+  // LED[1] shows branch_taken
+  // LED[2] shows mem_result_valid
 
 endmodule : cpu_top

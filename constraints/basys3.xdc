@@ -16,6 +16,13 @@ create_generated_clock -name clk_div2 -source [get_ports clk] -divide_by 2 [get_
 ## so the board reset button must be held to keep the design in reset)
 set_property -dict { PACKAGE_PIN U18  IOSTANDARD LVCMOS33 } [get_ports rst_n]
 
+## Register select (Switches SW4-SW0 select which register to display on LEDs)
+set_property -dict { PACKAGE_PIN W15  IOSTANDARD LVCMOS33 } [get_ports {reg_select[0]}]
+set_property -dict { PACKAGE_PIN V15  IOSTANDARD LVCMOS33 } [get_ports {reg_select[1]}]
+set_property -dict { PACKAGE_PIN W14  IOSTANDARD LVCMOS33 } [get_ports {reg_select[2]}]
+set_property -dict { PACKAGE_PIN W13  IOSTANDARD LVCMOS33 } [get_ports {reg_select[3]}]
+set_property -dict { PACKAGE_PIN V2   IOSTANDARD LVCMOS33 } [get_ports {reg_select[4]}]
+
 ## Center pushbutton (BTNC) - add-order trigger, debounced in basys_top
 set_property -dict { PACKAGE_PIN U17  IOSTANDARD LVCMOS33 } [get_ports btnC]
 

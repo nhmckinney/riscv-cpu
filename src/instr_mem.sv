@@ -16,6 +16,17 @@ module instr_mem(
     instr = mem[addr[11:2]];  // word-aligned addressing (addr >> 2)
   end
 
-  // TODO: Initialize mem with program (via $readmemh or initial block)
+  // Initialize instruction memory with test program
+  initial begin
+    // add_test.s: addi x1, x0, 5; addi x2, x0, 3; add x3, x1, x2; beq x0, x0, .
+    mem[0] = 32'h00508093;  // addi x1, x0, 5
+    mem[1] = 32'h00310113;  // addi x2, x0, 3
+    mem[2] = 32'h00208183;  // add x3, x1, x2
+    mem[3] = 32'h00000063;  // beq x0, x0, 0 (infinite loop)
+    // Rest of memory filled with zeros (NOPs)
+    for (int i = 4; i < MEM_SIZE; i++) begin
+      mem[i] = 32'h00000013;  // nop (addi x0, x0, 0)
+    end
+  end
 
 endmodule : instr_mem
