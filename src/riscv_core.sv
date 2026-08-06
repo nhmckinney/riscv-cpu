@@ -175,8 +175,8 @@ module riscv_core(
     .instr_cycle_count()
   );
 
-  // Main memory backing store
-  memory_interface #(.MEM_SIZE_LINES(1024)) main_mem(
+  // Main memory backing store (reduced for Basys3 BRAM constraints)
+  memory_interface #(.MEM_SIZE_LINES(256)) main_mem(
     .clk(clk),
     .rst_n(rst_n),
     .req_valid(mem_req_valid),

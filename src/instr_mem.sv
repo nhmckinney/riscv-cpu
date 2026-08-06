@@ -8,7 +8,7 @@ module instr_mem(
   output instr_t instr
 );
 
-  parameter int MEM_SIZE = 1024;  // 1024 words = 4KB
+  parameter int MEM_SIZE = 256;  // 256 words = 1KB (sufficient for test programs on Basys3)
   logic [31:0] mem [0:MEM_SIZE-1];
 
   // combinational reading
