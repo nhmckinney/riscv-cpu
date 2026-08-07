@@ -1,5 +1,4 @@
 import riscv_pkg::*;
-import cache_pkg::*;
 
 module riscv_core(
   input logic clk, rst_n,
@@ -138,53 +137,18 @@ module riscv_core(
 
 
 
-  // Cache controller
-  logic cache_req_valid, cache_req_ready;
-  cache_pkg::addr_t cache_req_addr;
-  cache_pkg::req_kind_e cache_req_kind;
-  cache_pkg::data_t cache_req_wdata;
-  logic cache_resp_valid;
-  cache_pkg::data_t cache_resp_rdata;
-  logic cache_resp_hit;
+  // Simple data memory (no cache for simulation)
+  logic mem_req_valid, mem_req_write;
+  word_t mem_req_addr, mem_req_wdata, mem_resp_rdata;
 
-  // Main memory interface signals
-  logic mem_req_valid, mem_req_done;
-  cache_pkg::mem_op_e mem_req_op;
-  cache_pkg::addr_t mem_req_addr;
-  cache_pkg::line_data_t mem_req_wdata, mem_rd_line;
-
-  cache_controller cache(
+  simple_data_mem data_mem(
     .clk(clk),
     .rst_n(rst_n),
-    .req_valid(cache_req_valid),
-    .req_ready(cache_req_ready),
-    .req_addr(cache_req_addr),
-    .req_kind(cache_req_kind),
-    .req_wdata(cache_req_wdata),
-    .resp_valid(cache_resp_valid),
-    .resp_rdata(cache_resp_rdata),
-    .resp_hit(cache_resp_hit),
     .mem_req_valid(mem_req_valid),
-    .mem_req_op(mem_req_op),
+    .mem_req_write(mem_req_write),
     .mem_req_addr(mem_req_addr),
     .mem_req_wdata(mem_req_wdata),
-    .mem_req_done(mem_req_done),
-    .mem_rd_line(mem_rd_line),
-    .instr_access_valid(),
-    .instr_hit(),
-    .instr_cycle_count()
-  );
-
-  // Main memory backing store (reduced for Basys3 BRAM constraints)
-  memory_interface #(.MEM_SIZE_LINES(256)) main_mem(
-    .clk(clk),
-    .rst_n(rst_n),
-    .req_valid(mem_req_valid),
-    .req_op(mem_req_op),
-    .req_addr(mem_req_addr),
-    .req_wdata(mem_req_wdata),
-    .req_done(mem_req_done),
-    .rd_line(mem_rd_line)
+    .mem_resp_rdata(mem_resp_rdata)
   );
 
   // Memory stage
@@ -205,14 +169,11 @@ module riscv_core(
     .exec_ctrl_sig(exec_ctrl_sig),
     .exec_funct3(exec_funct3),
     .exec_opcode(exec_opcode),
-    .cache_req_valid(cache_req_valid),
-    .cache_req_ready(cache_req_ready),
-    .cache_req_addr(cache_req_addr),
-    .cache_req_kind(cache_req_kind),
-    .cache_req_wdata(cache_req_wdata),
-    .cache_resp_valid(cache_resp_valid),
-    .cache_resp_rdata(cache_resp_rdata),
-    .cache_resp_hit(cache_resp_hit),
+    .mem_req_valid(mem_req_valid),
+    .mem_req_write(mem_req_write),
+    .mem_req_addr(mem_req_addr),
+    .mem_req_wdata(mem_req_wdata),
+    .mem_resp_rdata(mem_resp_rdata),
     .mem_result(mem_result),
     .mem_result_valid(mem_result_valid),
     .mem_rd(mem_rd),
