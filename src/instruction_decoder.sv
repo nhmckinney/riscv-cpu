@@ -29,9 +29,11 @@ module instruction_decoder(
     case (opcode)
       OP_LUI: begin //load upper immediate
         imm[31:12] = instr[31:12]; //extract upper immediate
-        ctrl_sig.reg_write = 1'b1; 
+        ctrl_sig.reg_write = 1'b1;
+        ctrl_sig.alu_src_a = 2'b10; //alu a input is zero
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
+        alu_op = ALU_ADD;
       end
       OP_AUIPC: begin //add upper immediate to PC
         imm[31:12] = instr[31:12]; //extract upper immediate
@@ -39,6 +41,7 @@ module instruction_decoder(
         ctrl_sig.alu_src_a = 2'b01; //alu a input is PC
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
+        alu_op = ALU_ADD;
       end
       OP_JAL: begin
         imm[20]    = instr[31];
@@ -94,7 +97,7 @@ module instruction_decoder(
           3'b010: alu_op = ALU_SLT;      // SLTI
           3'b011: alu_op = ALU_SLTU;     // SLTIU
           3'b100: alu_op = ALU_XOR;      // XORI
-          3'b101: alu_op = (funct7[5] == 1'b0) ? ALU_SRL : ALU_SRA;  // SRLI vs SRAI
+          3'b101: alu_op = alu_op_t'((funct7[5] == 1'b0) ? ALU_SRL : ALU_SRA);  // SRLI vs SRAI
           3'b110: alu_op = ALU_OR;       // ORI
           3'b111: alu_op = ALU_AND;      // ANDI
           default: alu_op = ALU_ADD;
@@ -106,15 +109,15 @@ module instruction_decoder(
         imm[31:12] = {20{instr[31]}};  // sign-extend
       end
 
-      OP_COMPUTE: begin //register to register 
+      OP_COMPUTE: begin //register to register
       //uses the alu
         case (funct3)
-          3'b000: alu_op = (funct7[5] == 1'b0) ? ALU_ADD : ALU_SUB;
+          3'b000: alu_op = alu_op_t'((funct7[5] == 1'b0) ? ALU_ADD : ALU_SUB);
           3'b001: alu_op = ALU_SLL;
           3'b010: alu_op = ALU_SLT;
           3'b011: alu_op = ALU_SLTU;
           3'b100: alu_op = ALU_XOR;
-          3'b101: alu_op = (funct7[5] == 1'b0) ? ALU_SRL : ALU_SRA;
+          3'b101: alu_op = alu_op_t'((funct7[5] == 1'b0) ? ALU_SRL : ALU_SRA);
           3'b110: alu_op = ALU_OR;
           3'b111: alu_op = ALU_AND;
           default: alu_op = ALU_ADD;

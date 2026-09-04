@@ -23,6 +23,7 @@ module pipeline_controller(
 
   // Control outputs
   output logic stall,
+  output logic execute_bubble,
   output logic fetch_flush
 );
 
@@ -52,13 +53,20 @@ module pipeline_controller(
 
 
 
-  //detects load use hazards
-  logic load_use_hazard;
+  // A stall-only pipeline must wait for every pending register write, not just
+  // loads. The producer in Execute is newer than the producer in Memory, but
+  // either one means the register file still contains an old value.
+  logic exec_raw_hazard, mem_raw_hazard;
 
   always_comb begin
-    load_use_hazard = (mem_read && mem_reg_write) && (
-      (decode_uses_rs1 && mem_rd == decode_rs1) ||
-      (decode_uses_rs2 && mem_rd == decode_rs2)
+    exec_raw_hazard = exec_reg_write && (exec_rd != '0) && (
+      (decode_uses_rs1 && (exec_rd == decode_rs1)) ||
+      (decode_uses_rs2 && (exec_rd == decode_rs2))
+    );
+
+    mem_raw_hazard = mem_reg_write && (mem_rd != '0) && (
+      (decode_uses_rs1 && (mem_rd == decode_rs1)) ||
+      (decode_uses_rs2 && (mem_rd == decode_rs2))
     );
   end
 
@@ -75,15 +83,14 @@ module pipeline_controller(
 
   //stall and flush signals
   always_comb begin
-    // Branch taken: flush decode stage
-    fetch_flush = branch_taken;
+    stall = exec_raw_hazard || mem_raw_hazard || cache_miss_stall;
 
-    if (load_use_hazard || cache_miss_stall) begin
-      stall = 1'b1;
-    end
-    else begin
-      stall = 1'b0;
-    end
+    // On a RAW hazard, hold the consumer in Decode and inject a bubble into
+    // Execute so the older instructions can continue toward Writeback.
+    execute_bubble = exec_raw_hazard || mem_raw_hazard;
+
+    // Do not act on a branch condition computed from stale operands.
+    fetch_flush = branch_taken && ~stall;
   end
 
 endmodule : pipeline_controller
