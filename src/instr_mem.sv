@@ -9,19 +9,20 @@ module instr_mem(
 );
 
   parameter int MEM_SIZE = 256;  // 256 words = 1KB (sufficient for test programs on Basys3)
+  localparam int ADDR_BITS = $clog2(MEM_SIZE);
   logic [31:0] mem [0:MEM_SIZE-1];
 
   // combinational reading
   always_comb begin
-    instr = mem[addr[11:2]];  // word-aligned addressing (addr >> 2)
+    instr = mem[addr[ADDR_BITS+1:2]];  // word-aligned addressing (addr >> 2)
   end
 
   // Initialize instruction memory with test program
   initial begin
     // add_test.s: addi x1, x0, 5; addi x2, x0, 3; add x3, x1, x2; beq x0, x0, .
-    mem[0] = 32'h00508093;  // addi x1, x0, 5
-    mem[1] = 32'h00310113;  // addi x2, x0, 3
-    mem[2] = 32'h00208183;  // add x3, x1, x2
+    mem[0] = 32'h00500093;  // addi x1, x0, 5
+    mem[1] = 32'h00300113;  // addi x2, x0, 3
+    mem[2] = 32'h002081b3;  // add x3, x1, x2
     mem[3] = 32'h00000063;  // beq x0, x0, 0 (infinite loop)
     // Rest of memory filled with zeros (NOPs)
     for (int i = 4; i < MEM_SIZE; i++) begin

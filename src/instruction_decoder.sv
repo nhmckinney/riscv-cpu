@@ -29,9 +29,11 @@ module instruction_decoder(
     case (opcode)
       OP_LUI: begin //load upper immediate
         imm[31:12] = instr[31:12]; //extract upper immediate
-        ctrl_sig.reg_write = 1'b1; 
+        ctrl_sig.reg_write = 1'b1;
+        ctrl_sig.alu_src_a = 2'b10; //alu a input is zero
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
+        alu_op = ALU_ADD;
       end
       OP_AUIPC: begin //add upper immediate to PC
         imm[31:12] = instr[31:12]; //extract upper immediate
@@ -39,6 +41,7 @@ module instruction_decoder(
         ctrl_sig.alu_src_a = 2'b01; //alu a input is PC
         ctrl_sig.alu_src_b = 2'b01; //alu b input is imm
         ctrl_sig.mem_to_reg = 2'b00;  //route alu output to reg
+        alu_op = ALU_ADD;
       end
       OP_JAL: begin
         imm[20]    = instr[31];

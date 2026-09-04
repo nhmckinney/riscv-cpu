@@ -17,7 +17,7 @@ module riscv_core(
   //fetch stage
   word_t fetch_pc, fetch_instr_word;
   instr_t fetch_instr;
-  logic stall, fetch_flush;
+  logic stall, execute_bubble, fetch_flush;
   word_t branch_target;
 
   fetch_stage fetch(
@@ -41,6 +41,7 @@ module riscv_core(
   opcode_t decode_opcode;
   logic [2:0] decode_funct3;
   logic [6:0] decode_funct7;
+  word_t decode_pc;
   reg_addr_t decode_rs1, decode_rs2, decode_rd;
   imm_t decode_imm;
   ctrl_signals_t decode_ctrl_sig;
@@ -50,7 +51,11 @@ module riscv_core(
   decode_stage decode(
     .clk(clk),
     .rst_n(rst_n),
+    .stall(stall),
+    .flush(fetch_flush),
+    .fetch_pc(fetch_pc),
     .instr(fetch_instr),
+    .decode_pc(decode_pc),
     .opcode(decode_opcode),
     .funct3(decode_funct3),
     .funct7(decode_funct7),
@@ -89,11 +94,6 @@ module riscv_core(
   );
 
 
-
-
-
-
-
   //execute stage
   word_t exec_alu_result, exec_rs2_data;
   reg_addr_t exec_rd;
@@ -106,7 +106,8 @@ module riscv_core(
   execute_stage exec(
     .clk(clk),
     .rst_n(rst_n),
-    .pc(fetch_pc),
+    .bubble(execute_bubble),
+    .pc(decode_pc),
     .rs1_data(rs1_data),
     .rs2_data(rs2_data),
     .imm(decode_imm),
@@ -226,6 +227,7 @@ module riscv_core(
     .mem_result_valid(mem_result_valid),
     .branch_taken(exec_branch_taken),
     .stall(stall),
+    .execute_bubble(execute_bubble),
     .fetch_flush(fetch_flush)
   );
 

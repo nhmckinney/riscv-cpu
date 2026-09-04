@@ -2,6 +2,7 @@ import riscv_pkg::*;
 
 module execute_stage(
   input logic clk, rst_n,
+  input logic bubble,
 
   // From decode stage
   input word_t pc,
@@ -34,6 +35,7 @@ module execute_stage(
     case (alu_src_a)
       2'b00: alu_a = rs1_data;  // register
       2'b01: alu_a = pc;        // PC
+      2'b10: alu_a = '0;        // zero (LUI)
       default: alu_a = '0;
     endcase
 
@@ -82,11 +84,16 @@ module execute_stage(
   always_comb begin
     if (ctrl_sig.is_jump) begin
       branch_taken = 1'b1;
-      branch_target = alu_result;  //PC + imm for JAL, or rs1+imm for JALR
+      if (opcode == OP_JALR) begin
+        branch_target = (rs1_data + imm) & 32'hffff_fffe;
+      end
+      else begin
+        branch_target = pc + imm;
+      end
     end
     else if (ctrl_sig.is_branch && branch_condition_met) begin
       branch_taken = 1'b1;
-      branch_target = alu_result;  // PC + imm
+      branch_target = pc + imm;
     end
     else begin
       branch_taken = 1'b0;
@@ -100,6 +107,14 @@ module execute_stage(
   //register results for next stages
   always_ff @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
+      exec_alu_result <= '0;
+      exec_rs2_data <= '0;
+      exec_rd <= '0;
+      exec_ctrl_sig <= '0;
+      exec_funct3 <= '0;
+      exec_opcode <= OP_INVALID;
+    end
+    else if (bubble) begin
       exec_alu_result <= '0;
       exec_rs2_data <= '0;
       exec_rd <= '0;

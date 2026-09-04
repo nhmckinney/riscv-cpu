@@ -56,7 +56,7 @@ package riscv_pkg;
 
   // Control signals
   typedef struct packed {
-    logic [1:0] alu_src_a;      // 0: rs1, 1: pc
+    logic [1:0] alu_src_a;      // 0: rs1, 1: pc, 2: zero
     logic [1:0] alu_src_b;      // 0: rs2, 1: imm, 2: 4
     logic       reg_write;
     logic       mem_read;

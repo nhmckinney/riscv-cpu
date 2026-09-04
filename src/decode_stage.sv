@@ -2,8 +2,11 @@ import riscv_pkg::*;
 
 module decode_stage(
   input logic clk, rst_n,
+  input logic stall, flush,
+  input word_t fetch_pc,
   input instr_t instr,
 
+  output word_t decode_pc,
   output opcode_t opcode,
   output logic [2:0] funct3,
   output logic [6:0] funct7,
@@ -30,6 +33,7 @@ module decode_stage(
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
+      decode_pc <= '0;
       opcode <= OP_INVALID;
       funct3 <= '0;
       funct7 <= '0;
@@ -40,7 +44,20 @@ module decode_stage(
       ctrl_sig <= '0;
       alu_op <= ALU_NOP;
     end
-    else begin
+    else if (flush) begin
+      decode_pc <= '0;
+      opcode <= OP_INVALID;
+      funct3 <= '0;
+      funct7 <= '0;
+      rs1 <= '0;
+      rs2 <= '0;
+      rd <= '0;
+      imm <= '0;
+      ctrl_sig <= '0;
+      alu_op <= ALU_NOP;
+    end
+    else if (~stall) begin
+      decode_pc <= fetch_pc;
       opcode <= opcode_next;
       funct3 <= funct3_next;
       funct7 <= funct7_next;
@@ -51,6 +68,7 @@ module decode_stage(
       ctrl_sig <= ctrl_sig_next;
       alu_op <= alu_op_next;
     end
+    // else: hold the current instruction until its source registers are ready
   end
 
 
