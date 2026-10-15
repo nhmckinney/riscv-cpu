@@ -28,7 +28,9 @@ module decode_stage(
                                  .funct3(funct3_next),.funct7(funct7_next),
                                  .rs1(rs1_next), .rs2(rs2_next), .rd(rd_next),
                                  .imm(imm_next),.ctrl_sig(ctrl_sig_next),
-                                 .alu_op(alu_op_next));
+                                 .alu_op(alu_op_next),
+                                 .illegal_instr(), .ecall(), .ebreak());
+                                 // trap handling is not wired yet
 
 
   always_ff @(posedge clk or negedge rst_n) begin

@@ -75,6 +75,7 @@ module riscv_core(
 
 //register file
   word_t rs1_data, rs2_data;
+  word_t forwarded_rs1_data, forwarded_rs2_data;
   reg_addr_t wb_wr_addr;
   logic wb_wr_en;
   word_t wb_wr_data;
@@ -103,13 +104,29 @@ module riscv_core(
   logic exec_branch_taken;
   word_t exec_branch_target;
 
+  data_forwarding forwarding(
+    .rs1(decode_rs1),
+    .rs2(decode_rs2),
+    .rs1_data(rs1_data),
+    .rs2_data(rs2_data),
+    .exmem_reg_write(exec_ctrl_sig.reg_write),
+    .exmem_mem_read(exec_ctrl_sig.mem_read),
+    .exmem_rd(exec_rd),
+    .exmem_result(exec_alu_result),
+    .memwb_reg_write(wb_wr_en),
+    .memwb_rd(wb_wr_addr),
+    .memwb_result(wb_wr_data),
+    .forwarded_rs1_data(forwarded_rs1_data),
+    .forwarded_rs2_data(forwarded_rs2_data)
+  );
+
   execute_stage exec(
     .clk(clk),
     .rst_n(rst_n),
     .bubble(execute_bubble),
     .pc(decode_pc),
-    .rs1_data(rs1_data),
-    .rs2_data(rs2_data),
+    .rs1_data(forwarded_rs1_data),
+    .rs2_data(forwarded_rs2_data),
     .imm(decode_imm),
     .alu_op(decode_alu_op),
     .alu_src_a(decode_ctrl_sig.alu_src_a),
@@ -221,8 +238,7 @@ module riscv_core(
     .decode_opcode(decode_opcode),
     .exec_rd(exec_rd),
     .exec_reg_write(exec_ctrl_sig.reg_write),
-    .mem_rd(mem_rd),
-    .mem_reg_write(mem_reg_write),
+    .exec_mem_read(exec_ctrl_sig.mem_read),
     .mem_read(mem_ctrl_sig.mem_read),
     .mem_result_valid(mem_result_valid),
     .branch_taken(exec_branch_taken),

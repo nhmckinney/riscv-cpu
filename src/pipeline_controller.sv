@@ -11,11 +11,10 @@ module pipeline_controller(
 
   // From execute stage
   input reg_addr_t exec_rd,
-  input logic exec_reg_write,
+  input logic exec_reg_write, exec_mem_read,
 
   // From memory stage
-  input reg_addr_t mem_rd,
-  input logic mem_reg_write, mem_read,
+  input logic mem_read,
   input logic mem_result_valid,
 
   // Branch signal
@@ -53,20 +52,14 @@ module pipeline_controller(
 
 
 
-  // A stall-only pipeline must wait for every pending register write, not just
-  // loads. The producer in Execute is newer than the producer in Memory, but
-  // either one means the register file still contains an old value.
-  logic exec_raw_hazard, mem_raw_hazard;
+  // ALU dependencies are handled by forwarding. A load-use dependency still
+  // needs one bubble because the EX/MEM value is the address, not loaded data.
+  logic load_use_hazard;
 
   always_comb begin
-    exec_raw_hazard = exec_reg_write && (exec_rd != '0) && (
+    load_use_hazard = exec_reg_write && exec_mem_read && (exec_rd != '0) && (
       (decode_uses_rs1 && (exec_rd == decode_rs1)) ||
       (decode_uses_rs2 && (exec_rd == decode_rs2))
-    );
-
-    mem_raw_hazard = mem_reg_write && (mem_rd != '0) && (
-      (decode_uses_rs1 && (mem_rd == decode_rs1)) ||
-      (decode_uses_rs2 && (mem_rd == decode_rs2))
     );
   end
 
@@ -83,11 +76,10 @@ module pipeline_controller(
 
   //stall and flush signals
   always_comb begin
-    stall = exec_raw_hazard || mem_raw_hazard || cache_miss_stall;
+    stall = load_use_hazard || cache_miss_stall;
 
-    // On a RAW hazard, hold the consumer in Decode and inject a bubble into
-    // Execute so the older instructions can continue toward Writeback.
-    execute_bubble = exec_raw_hazard || mem_raw_hazard;
+    // Hold the consumer in Decode while the load advances to MEM/WB.
+    execute_bubble = load_use_hazard;
 
     // Do not act on a branch condition computed from stale operands.
     fetch_flush = branch_taken && ~stall;
