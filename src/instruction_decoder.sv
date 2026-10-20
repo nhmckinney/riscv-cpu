@@ -10,7 +10,8 @@ module instruction_decoder(
   output ctrl_signals_t ctrl_sig,
   output alu_op_t alu_op,
   output logic illegal_instr,
-  output logic ecall, ebreak
+  output logic ecall, ebreak,
+  output logic mret, csr_en
 );
 
   always_comb begin
@@ -27,6 +28,8 @@ module instruction_decoder(
     illegal_instr = 1'b0;
     ecall = 1'b0;
     ebreak = 1'b0;
+    mret = 1'b0;
+    csr_en = 1'b0;
 
     case (opcode)
       OP_LUI: begin
@@ -166,11 +169,19 @@ module instruction_decoder(
       end
 
       OP_SYSTEM: begin
-        // ECALL and EBREAK have distinct architectural trap causes.
-        // Other SYSTEM encodings need Zicsr or another extension.
-        case (instr)
-          32'h00000073: ecall = 1'b1;
-          32'h00100073: ebreak = 1'b1;
+        case (funct3)
+          3'b000: begin
+            case (instr)
+              32'h00000073: ecall = 1'b1;
+              32'h00100073: ebreak = 1'b1;
+              32'h30200073: mret = 1'b1;
+              default: illegal_instr = 1'b1;
+            endcase
+          end
+          3'b001, 3'b010, 3'b011, 3'b101, 3'b110, 3'b111: begin
+            csr_en = 1'b1;
+            ctrl_sig.reg_write = 1'b1;
+          end
           default: illegal_instr = 1'b1;
         endcase
       end
@@ -179,12 +190,14 @@ module instruction_decoder(
     endcase
 
     // Invalid or unsupported encodings must not write a register, access
-    // memory, or redirect the PC. A future trap unit can use these flags.
+    // memory, or redirect the PC. Decode forwards the trap flags and raw
+    // instruction to the core so the trap unit can report the exception.
     if (illegal_instr) begin
       opcode = OP_INVALID;
       imm = '0;
       ctrl_sig = '0;
       alu_op = ALU_NOP;
+      csr_en = 1'b0;
     end
   end
 

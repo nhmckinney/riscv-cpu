@@ -3,6 +3,8 @@ import riscv_pkg::*;
 module execute_stage(
   input logic clk, rst_n,
   input logic bubble,
+  input logic result_override,
+  input word_t override_value,
 
   // From decode stage
   input word_t pc,
@@ -123,7 +125,7 @@ module execute_stage(
       exec_opcode <= OP_INVALID;
     end
     else begin
-      exec_alu_result <= alu_result;
+      exec_alu_result <= result_override ? override_value : alu_result;
       exec_rs2_data <= rs2_data;
       exec_rd <= rd;
       exec_ctrl_sig <= ctrl_sig;

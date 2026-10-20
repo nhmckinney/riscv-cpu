@@ -13,7 +13,9 @@ module decode_stage(
   output reg_addr_t rs1, rs2, rd,
   output imm_t imm,
   output ctrl_signals_t ctrl_sig,
-  output alu_op_t alu_op
+  output alu_op_t alu_op,
+  output logic valid, illegal_instr, ecall, ebreak, mret, csr_en,
+  output instr_t decode_instr
 );
 
   opcode_t opcode_next;
@@ -23,14 +25,16 @@ module decode_stage(
   imm_t imm_next;
   ctrl_signals_t ctrl_sig_next;
   alu_op_t alu_op_next;
+  logic illegal_next, ecall_next, ebreak_next, mret_next, csr_next;
 
   instruction_decoder decode_mod(.instr(instr),.opcode(opcode_next),
                                  .funct3(funct3_next),.funct7(funct7_next),
                                  .rs1(rs1_next), .rs2(rs2_next), .rd(rd_next),
                                  .imm(imm_next),.ctrl_sig(ctrl_sig_next),
                                  .alu_op(alu_op_next),
-                                 .illegal_instr(), .ecall(), .ebreak());
-                                 // trap handling is not wired yet
+                                 .illegal_instr(illegal_next),
+                                 .ecall(ecall_next), .ebreak(ebreak_next),
+                                 .mret(mret_next), .csr_en(csr_next));
 
 
   always_ff @(posedge clk or negedge rst_n) begin
@@ -45,6 +49,13 @@ module decode_stage(
       imm <= '0;
       ctrl_sig <= '0;
       alu_op <= ALU_NOP;
+      valid <= 1'b0;
+      decode_instr <= '0;
+      illegal_instr <= 1'b0;
+      ecall <= 1'b0;
+      ebreak <= 1'b0;
+      mret <= 1'b0;
+      csr_en <= 1'b0;
     end
     else if (flush) begin
       decode_pc <= '0;
@@ -57,6 +68,13 @@ module decode_stage(
       imm <= '0;
       ctrl_sig <= '0;
       alu_op <= ALU_NOP;
+      valid <= 1'b0;
+      decode_instr <= '0;
+      illegal_instr <= 1'b0;
+      ecall <= 1'b0;
+      ebreak <= 1'b0;
+      mret <= 1'b0;
+      csr_en <= 1'b0;
     end
     else if (~stall) begin
       decode_pc <= fetch_pc;
@@ -69,6 +87,13 @@ module decode_stage(
       imm <= imm_next;
       ctrl_sig <= ctrl_sig_next;
       alu_op <= alu_op_next;
+      valid <= 1'b1;
+      decode_instr <= instr;
+      illegal_instr <= illegal_next;
+      ecall <= ecall_next;
+      ebreak <= ebreak_next;
+      mret <= mret_next;
+      csr_en <= csr_next;
     end
     // else: hold the current instruction until its source registers are ready
   end

@@ -21,7 +21,7 @@ L1 cache implementation (2-way set-associative). Currently working on getting it
 - `basys3_top.sv` — simple counter test (LEDs + 7-seg display)
 
 **Testing**:
-- `tb/cache_tb.sv` — comprehensive testbench (requires Verilator; Icarus Verilog doesn't support advanced SystemVerilog features used here)
+- `tb/cache_tb.sv` — cache controller testbench
 
 ## Quick Start
 
@@ -31,7 +31,3 @@ To synthesize the test counter on Basys3:
 3. Set top module to `basys3_top`
 4. Synthesize → implement → generate bitstream
 5. Program and watch the counter increment on LEDs/7-seg
-
-## Next Steps
-
-See `futurePlans.md` for the roadmap (clock domain crossing, performance stuff, etc.)

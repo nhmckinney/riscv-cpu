@@ -2,6 +2,7 @@ import riscv_pkg::*;
 
 module riscv_core(
   input logic clk, rst_n,
+  input logic irq_software, irq_timer, irq_external,
 
   // Debug outputs to prevent optimization
   output logic stall_out,
@@ -18,6 +19,7 @@ module riscv_core(
   word_t fetch_pc, fetch_instr_word;
   instr_t fetch_instr;
   logic stall, execute_bubble, fetch_flush;
+  logic hazard_bubble, branch_flush;
   word_t branch_target;
 
   fetch_stage fetch(
@@ -46,6 +48,9 @@ module riscv_core(
   imm_t decode_imm;
   ctrl_signals_t decode_ctrl_sig;
   alu_op_t decode_alu_op;
+  instr_t decode_instr;
+  logic decode_valid, decode_illegal, decode_ecall, decode_ebreak;
+  logic decode_mret, decode_csr;
 
   // instruction decoder is instantiated within
   decode_stage decode(
@@ -64,7 +69,10 @@ module riscv_core(
     .rd(decode_rd),
     .imm(decode_imm),
     .ctrl_sig(decode_ctrl_sig),
-    .alu_op(decode_alu_op)
+    .alu_op(decode_alu_op),
+    .valid(decode_valid), .decode_instr(decode_instr),
+    .illegal_instr(decode_illegal), .ecall(decode_ecall),
+    .ebreak(decode_ebreak), .mret(decode_mret), .csr_en(decode_csr)
   );
 
 
@@ -103,6 +111,63 @@ module riscv_core(
   opcode_t exec_opcode;
   logic exec_branch_taken;
   word_t exec_branch_target;
+  word_t csr_rdata, effective_addr, exception_cause, exception_tval;
+  word_t trap_target, trap_cause, trap_tval;
+  logic csr_illegal, exception_valid, misaligned_data;
+  logic trap_taken, mret_taken, trap_redirect;
+
+  assign effective_addr = forwarded_rs1_data + decode_imm;
+  assign misaligned_data =
+    ((decode_funct3[1:0] == 2'b01) && effective_addr[0]) ||
+    ((decode_funct3[1:0] == 2'b10) && (|effective_addr[1:0]));
+
+  always_comb begin
+    exception_valid = 1'b0;
+    exception_cause = '0;
+    exception_tval = '0;
+    if (decode_illegal || csr_illegal) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_ILLEGAL_INSTR;
+      exception_tval = decode_instr;
+    end else if (decode_ecall) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_ECALL_M;
+    end else if (decode_ebreak) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_BREAKPOINT;
+      exception_tval = decode_pc;
+    end else if (decode_ctrl_sig.mem_read && misaligned_data) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_LOAD_MISALIGNED;
+      exception_tval = effective_addr;
+    end else if (decode_ctrl_sig.mem_write && misaligned_data) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_STORE_MISALIGNED;
+      exception_tval = effective_addr;
+    end else if (exec_branch_taken && (|exec_branch_target[1:0])) begin
+      exception_valid = 1'b1;
+      exception_cause = CAUSE_INSTR_MISALIGNED;
+      exception_tval = exec_branch_target;
+    end
+  end
+
+  trap_unit traps (
+    .clk, .rst_n,
+    .instruction_valid(decode_valid && !stall),
+    .instruction_pc(decode_pc),
+    .exception_valid, .exception_cause, .exception_tval,
+    .mret(decode_mret), .csr_en(decode_csr),
+    .csr_addr(decode_instr[31:20]), .csr_funct3(decode_funct3),
+    .csr_source_zero(decode_rs1 == '0),
+    .csr_source(decode_funct3[2] ? {27'b0, decode_rs1} : forwarded_rs1_data),
+    .irq_software, .irq_timer, .irq_external,
+    .csr_rdata, .csr_illegal, .trap_taken, .return_taken(mret_taken),
+    .redirect_valid(trap_redirect), .redirect_pc(trap_target),
+    .trap_cause, .trap_tval
+  );
+
+  assign execute_bubble = hazard_bubble || trap_redirect || !decode_valid;
+  assign fetch_flush = trap_redirect || branch_flush;
 
   data_forwarding forwarding(
     .rs1(decode_rs1),
@@ -124,6 +189,8 @@ module riscv_core(
     .clk(clk),
     .rst_n(rst_n),
     .bubble(execute_bubble),
+    .result_override(decode_csr),
+    .override_value(csr_rdata),
     .pc(decode_pc),
     .rs1_data(forwarded_rs1_data),
     .rs2_data(forwarded_rs2_data),
@@ -157,6 +224,7 @@ module riscv_core(
 
   // Simple data memory (no cache for simulation)
   logic mem_req_valid, mem_req_write;
+  logic [3:0] mem_req_wstrb;
   word_t mem_req_addr, mem_req_wdata, mem_resp_rdata;
 
   simple_data_mem data_mem(
@@ -166,6 +234,7 @@ module riscv_core(
     .mem_req_write(mem_req_write),
     .mem_req_addr(mem_req_addr),
     .mem_req_wdata(mem_req_wdata),
+    .mem_req_wstrb(mem_req_wstrb),
     .mem_resp_rdata(mem_resp_rdata)
   );
 
@@ -191,6 +260,7 @@ module riscv_core(
     .mem_req_write(mem_req_write),
     .mem_req_addr(mem_req_addr),
     .mem_req_wdata(mem_req_wdata),
+    .mem_req_wstrb(mem_req_wstrb),
     .mem_resp_rdata(mem_resp_rdata),
     .mem_result(mem_result),
     .mem_result_valid(mem_result_valid),
@@ -236,6 +306,7 @@ module riscv_core(
     .decode_rs1(decode_rs1),
     .decode_rs2(decode_rs2),
     .decode_opcode(decode_opcode),
+    .decode_funct3(decode_funct3),
     .exec_rd(exec_rd),
     .exec_reg_write(exec_ctrl_sig.reg_write),
     .exec_mem_read(exec_ctrl_sig.mem_read),
@@ -243,11 +314,11 @@ module riscv_core(
     .mem_result_valid(mem_result_valid),
     .branch_taken(exec_branch_taken),
     .stall(stall),
-    .execute_bubble(execute_bubble),
-    .fetch_flush(fetch_flush)
+    .execute_bubble(hazard_bubble),
+    .fetch_flush(branch_flush)
   );
 
-  assign branch_target = exec_branch_target;
+  assign branch_target = trap_redirect ? trap_target : exec_branch_target;
 
   // Debug outputs
   assign stall_out = stall;

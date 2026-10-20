@@ -1,11 +1,12 @@
-# RV32I CPU RTL
+# RV32I FPGA CPU
 
-Five-stage RISC-V CPU prototype in SystemVerilog, with fetch, decode, execute, memory, and writeback modules. The repository also contains hazard/branch control, a Basys3-facing wrapper and constraints, and a separate L1 cache design.
+A five-stage RISC-V CPU prototype in SystemVerilog with forwarding and
+load-use stalls. The FPGA demo targets the Boolean Board.
 
-## Current status
+## Synthesize
 
-| Area | Status |
-| --- | --- |
-| Core pipeline | Stage modules are connected in `src/riscv_core.sv`. |
-| Hazard and branch control | `src/pipeline_controller.sv` implements stalls and flushes; needs more tests. |
-| Memory and cache integration are in the works |
+Run from the repository root with Vivado installed:
+
+```sh
+vivado -mode batch -source scripts/synth_boolean_board.tcl
+```

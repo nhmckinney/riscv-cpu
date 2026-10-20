@@ -16,6 +16,7 @@ module memory_stage(
   output logic mem_req_write,
   output word_t mem_req_addr,
   output word_t mem_req_wdata,
+  output logic [3:0] mem_req_wstrb,
   input word_t mem_resp_rdata,
 
   // Outputs to writeback stage (registered)
@@ -74,10 +75,30 @@ module memory_stage(
 
   // Drive simple memory request (single-cycle interface)
   always_comb begin
-    mem_req_valid = exec_ctrl_sig.mem_read || exec_ctrl_sig.mem_write;
-    mem_req_write = exec_ctrl_sig.mem_write;
     mem_req_addr = exec_alu_result;
-    mem_req_wdata = exec_rs2_data;
+    // Little-endian stores place the low byte/halfword in the addressed lanes.
+    mem_req_wdata = exec_rs2_data << {exec_alu_result[1:0], 3'b000};
+    mem_req_wstrb = 4'b0000;
+
+    if (exec_ctrl_sig.mem_write) begin
+      case (exec_funct3)
+        3'b000: mem_req_wstrb = 4'b0001 << exec_alu_result[1:0]; // SB
+        3'b001: begin // SH: only naturally aligned accesses are supported.
+          if (exec_alu_result[0] == 1'b0)
+            mem_req_wstrb = 4'b0011 << exec_alu_result[1:0];
+        end
+        3'b010: begin // SW
+          if (exec_alu_result[1:0] == 2'b00)
+            mem_req_wstrb = 4'b1111;
+        end
+        default: mem_req_wstrb = 4'b0000;
+      endcase
+    end
+
+    // Defensive mask: the core takes alignment traps before EX/MEM, so a
+    // misaligned store must never reach this interface during normal execution.
+    mem_req_write = exec_ctrl_sig.mem_write && (|mem_req_wstrb);
+    mem_req_valid = exec_ctrl_sig.mem_read || mem_req_write;
   end
 
   

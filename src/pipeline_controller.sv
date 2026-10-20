@@ -8,6 +8,7 @@ module pipeline_controller(
   // From decode stage
   input reg_addr_t decode_rs1, decode_rs2,
   input opcode_t decode_opcode,
+  input logic [2:0] decode_funct3,
 
   // From execute stage
   input reg_addr_t exec_rd,
@@ -41,6 +42,13 @@ module pipeline_controller(
       OP_BRANCH, OP_STORE, OP_COMPUTE: begin
         decode_uses_rs1 = 1'b1;
         decode_uses_rs2 = 1'b1;
+      end
+      OP_SYSTEM: begin
+        // CSR register forms consume rs1; immediate forms use its encoding.
+        decode_uses_rs1 = (decode_funct3 == 3'b001) ||
+                          (decode_funct3 == 3'b010) ||
+                          (decode_funct3 == 3'b011);
+        decode_uses_rs2 = 1'b0;
       end
       default: begin
         decode_uses_rs1 = 1'b0;

@@ -13,6 +13,14 @@ package riscv_pkg;
   // Immediate values
   typedef logic [31:0] imm_t;
 
+  // Machine-mode trap causes (mcause bit 31 distinguishes interrupts).
+  localparam word_t CAUSE_INSTR_MISALIGNED = 32'd0;
+  localparam word_t CAUSE_ILLEGAL_INSTR = 32'd2;
+  localparam word_t CAUSE_BREAKPOINT = 32'd3;
+  localparam word_t CAUSE_LOAD_MISALIGNED = 32'd4;
+  localparam word_t CAUSE_STORE_MISALIGNED = 32'd6;
+  localparam word_t CAUSE_ECALL_M = 32'd11;
+
   // Opcodes (7 bits)
   typedef enum logic [6:0] {
     OP_INVALID = 7'b0000000,

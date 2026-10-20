@@ -22,6 +22,7 @@ module cpu_top(
   riscv_core cpu(
     .clk(clk),
     .rst_n(rst_n),
+    .irq_software(1'b0), .irq_timer(1'b0), .irq_external(1'b0),
     .stall_out(stall),
     .branch_taken_out(branch_taken),
     .mem_result_valid_out(mem_result_valid),

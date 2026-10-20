@@ -24,7 +24,7 @@ module register_file(
       end
     end
     else begin
-      if (wr_en) begin //synchronous write enable
+      if (wr_en && (wr_addr != '0)) begin // x0 never changes
         registers[wr_addr] <= wr_data;
       end
     end
