@@ -11,7 +11,7 @@ module memory_stage(
   input logic [2:0] exec_funct3,
   input opcode_t exec_opcode,
 
-  // Simple single-cycle data memory interface (no cache)
+  // Synchronous single-port data BRAM interface
   output logic mem_req_valid,
   output logic mem_req_write,
   output word_t mem_req_addr,
@@ -29,16 +29,17 @@ module memory_stage(
   output opcode_t mem_opcode
 );
 
-  word_t extracted_load_data;
+  word_t extracted_load_data, registered_alu_result;
+  logic [1:0] mem_addr_offset;
 
-  // Extract loaded data based on funct3 (load width)
+  // The RAM output and these registered controls belong to the same request.
   always_comb begin
     extracted_load_data = '0;
 
-    if (exec_ctrl_sig.mem_read) begin
-      case (exec_funct3)
+    if (mem_ctrl_sig.mem_read) begin
+      case (mem_funct3)
         3'b000: begin  // LB (load byte, sign-extend)
-          case (exec_alu_result[1:0])
+          case (mem_addr_offset)
             2'b00: extracted_load_data = {{24{mem_resp_rdata[7]}}, mem_resp_rdata[7:0]};
             2'b01: extracted_load_data = {{24{mem_resp_rdata[15]}}, mem_resp_rdata[15:8]};
             2'b10: extracted_load_data = {{24{mem_resp_rdata[23]}}, mem_resp_rdata[23:16]};
@@ -46,7 +47,7 @@ module memory_stage(
           endcase
         end
         3'b001: begin  // LH (load halfword, sign-extend)
-          case (exec_alu_result[1])
+          case (mem_addr_offset[1])
             1'b0: extracted_load_data = {{16{mem_resp_rdata[15]}}, mem_resp_rdata[15:0]};
             1'b1: extracted_load_data = {{16{mem_resp_rdata[31]}}, mem_resp_rdata[31:16]};
           endcase
@@ -55,7 +56,7 @@ module memory_stage(
           extracted_load_data = mem_resp_rdata;
         end
         3'b100: begin  // LBU (load byte, zero-extend)
-          case (exec_alu_result[1:0])
+          case (mem_addr_offset)
             2'b00: extracted_load_data = {24'b0, mem_resp_rdata[7:0]};
             2'b01: extracted_load_data = {24'b0, mem_resp_rdata[15:8]};
             2'b10: extracted_load_data = {24'b0, mem_resp_rdata[23:16]};
@@ -63,7 +64,7 @@ module memory_stage(
           endcase
         end
         3'b101: begin  // LHU (load halfword, zero-extend)
-          case (exec_alu_result[1])
+          case (mem_addr_offset[1])
             1'b0: extracted_load_data = {16'b0, mem_resp_rdata[15:0]};
             1'b1: extracted_load_data = {16'b0, mem_resp_rdata[31:16]};
           endcase
@@ -73,7 +74,7 @@ module memory_stage(
     end
   end
 
-  // Drive simple memory request (single-cycle interface)
+  // Issue the EX/MEM request; the BRAM samples it on the next rising edge.
   always_comb begin
     mem_req_addr = exec_alu_result;
     // Little-endian stores place the low byte/halfword in the addressed lanes.
@@ -101,41 +102,14 @@ module memory_stage(
     mem_req_valid = exec_ctrl_sig.mem_read || mem_req_write;
   end
 
-  
-
-
-
-// For simulation: memory operations are single-cycle (no stalling)
-// In real FPGA with cache, this would be gated by cache_resp_valid
-  word_t mem_result_next;
-  logic mem_result_valid_next;
-
-  always_comb begin
-    if (exec_ctrl_sig.mem_read) begin
-      mem_result_next = extracted_load_data;
-      mem_result_valid_next = 1'b1;
-    end
-    else if (~exec_ctrl_sig.mem_read && ~exec_ctrl_sig.mem_write) begin
-      mem_result_next = exec_alu_result;
-      mem_result_valid_next = 1'b1;
-    end
-    else if (exec_ctrl_sig.mem_write) begin
-      mem_result_next = exec_alu_result;
-      mem_result_valid_next = 1'b1;
-    end
-    else begin
-      mem_result_next = '0;
-      mem_result_valid_next = 1'b0;
-    end
-  end
-
-
-
-
+  // BRAM already registers read data. Register only the matching metadata
+  // and ALU bypass, then extract the load width in the writeback cycle.
+  assign mem_result = mem_ctrl_sig.mem_read ? extracted_load_data : registered_alu_result;
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-      mem_result <= '0;
+      registered_alu_result <= '0;
+      mem_addr_offset <= '0;
       mem_result_valid <= 1'b0;
       mem_rd <= '0;
       mem_reg_write <= 1'b0;
@@ -144,8 +118,9 @@ module memory_stage(
       mem_opcode <= OP_INVALID;
     end
     else begin
-      mem_result <= mem_result_next;
-      mem_result_valid <= mem_result_valid_next;
+      registered_alu_result <= exec_alu_result;
+      mem_addr_offset <= exec_alu_result[1:0];
+      mem_result_valid <= 1'b1;
       mem_rd <= exec_rd;
       mem_reg_write <= exec_ctrl_sig.reg_write;
       mem_ctrl_sig <= exec_ctrl_sig;

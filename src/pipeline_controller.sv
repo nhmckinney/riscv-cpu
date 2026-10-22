@@ -14,10 +14,6 @@ module pipeline_controller(
   input reg_addr_t exec_rd,
   input logic exec_reg_write, exec_mem_read,
 
-  // From memory stage
-  input logic mem_read,
-  input logic mem_result_valid,
-
   // Branch signal
   input logic branch_taken,
 
@@ -74,17 +70,9 @@ module pipeline_controller(
   
 
 
-  //stalls the entire CPU upon a cache miss
-  logic cache_miss_stall;
-
-  always_comb begin
-    cache_miss_stall = mem_read && ~mem_result_valid;
-  end
-
-
   //stall and flush signals
   always_comb begin
-    stall = load_use_hazard || cache_miss_stall;
+    stall = load_use_hazard;
 
     // Hold the consumer in Decode while the load advances to MEM/WB.
     execute_bubble = load_use_hazard;

@@ -3,6 +3,7 @@ import riscv_pkg::*;
 module decode_stage(
   input logic clk, rst_n,
   input logic stall, flush,
+  input logic fetch_valid,
   input word_t fetch_pc,
   input instr_t instr,
 
@@ -57,7 +58,7 @@ module decode_stage(
       mret <= 1'b0;
       csr_en <= 1'b0;
     end
-    else if (flush) begin
+    else if (flush || (!stall && !fetch_valid)) begin
       decode_pc <= '0;
       opcode <= OP_INVALID;
       funct3 <= '0;

@@ -18,6 +18,7 @@ module riscv_core(
   //fetch stage
   word_t fetch_pc, fetch_instr_word;
   instr_t fetch_instr;
+  logic fetch_valid;
   logic stall, execute_bubble, fetch_flush;
   logic hazard_bubble, branch_flush;
   word_t branch_target;
@@ -29,7 +30,8 @@ module riscv_core(
     .flush(fetch_flush),
     .branch_target(branch_target),
     .pc(fetch_pc),
-    .instr(fetch_instr_word)
+    .instr(fetch_instr_word),
+    .valid(fetch_valid)
   );
   assign fetch_instr = fetch_instr_word;
 
@@ -58,6 +60,7 @@ module riscv_core(
     .rst_n(rst_n),
     .stall(stall),
     .flush(fetch_flush),
+    .fetch_valid(fetch_valid),
     .fetch_pc(fetch_pc),
     .instr(fetch_instr),
     .decode_pc(decode_pc),
@@ -222,7 +225,7 @@ module riscv_core(
 
 
 
-  // Simple data memory (no cache for simulation)
+  // Synchronous data BRAM.
   logic mem_req_valid, mem_req_write;
   logic [3:0] mem_req_wstrb;
   word_t mem_req_addr, mem_req_wdata, mem_resp_rdata;
@@ -310,8 +313,6 @@ module riscv_core(
     .exec_rd(exec_rd),
     .exec_reg_write(exec_ctrl_sig.reg_write),
     .exec_mem_read(exec_ctrl_sig.mem_read),
-    .mem_read(mem_ctrl_sig.mem_read),
-    .mem_result_valid(mem_result_valid),
     .branch_taken(exec_branch_taken),
     .stall(stall),
     .execute_bubble(hazard_bubble),

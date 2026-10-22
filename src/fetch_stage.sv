@@ -2,48 +2,40 @@ import riscv_pkg::*;
 
 module fetch_stage(
   input logic clk, rst_n,
-  input logic stall,                //if asserted, pause fetching and wait
-  input logic flush,                //flushes current PC and replaces
-  //both above are from pipeline_controller
-  input word_t branch_target,       // from execute_stage (branch address)
-
-  output word_t pc,                 // current PC
-  output instr_t instr              // fetched instruction
+  input logic stall, flush,
+  input word_t branch_target,
+  output word_t pc,
+  output instr_t instr,
+  output logic valid
 );
+  word_t request_pc, response_pc;
+  logic read_enable;
 
-  word_t pc_reg, pc_next;
-  instr_t fetched_instr;
+  assign read_enable = rst_n && !stall && !flush;
 
-  // Instantiate instruction memory
   instr_mem imem (
-    .addr(pc_reg),
-    .instr(fetched_instr)
+    .clk(clk),
+    .enable(read_enable),
+    .addr(request_pc),
+    .instr(instr)
   );
 
-  // PC update logic (sequential)
+  // response_pc and valid describe the registered instruction BRAM output.
   always_ff @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-      pc_reg <= 32'b0;
+    if (!rst_n) begin
+      request_pc <= '0;
+      response_pc <= '0;
+      valid <= 1'b0;
     end else if (flush) begin
-      pc_reg <= branch_target;  // branch misprediction: redirect to new addr
-      //provided by execute stage
-    end else if (~stall) begin
-      pc_reg <= pc_next;            // normal: increment
-    end
-    // else: stall, hold PC
-  end
-
-  // PC increment or branch mux (combinational)
-  always_comb begin
-    if (flush) begin
-      pc_next = branch_target;
-    end else begin
-      pc_next = pc_reg + 32'd4;     // next instruction (4 bytes)
+      request_pc <= branch_target;
+      response_pc <= branch_target;
+      valid <= 1'b0;
+    end else if (!stall) begin
+      response_pc <= request_pc;
+      request_pc <= request_pc + 32'd4;
+      valid <= 1'b1;
     end
   end
 
-  // Output current PC and instruction
-  assign pc = pc_reg;
-  assign instr = fetched_instr;
-
+  assign pc = response_pc;
 endmodule : fetch_stage
